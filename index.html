@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        th, td, tbody, caption {
+            border: 1px solid #5218d0;
+            border-collapse: collapse;
+            padding: 0.5rem;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input, select {
+            padding: 8px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #5218d0;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+    <title>daily work</title>
+</head>
+<body>
+    <h1>เพิ่มหรือแก้ไขการปฏิบัติงาน</h1>
+
+    <form id="taskForm">
+        <input type="hidden" id="task_id" name="task_id">
+
+        <label for="work_type">ประเภทงาน:</label>
+        <select id="work_type" name="work_type" required>
+            <option value="development">Development</option>
+            <option value="test">Test</option>
+            <option value="document">Document</option>
+        </select>
+
+        <label for="process_name">ชื่อกระบวนการ:</label>
+        <input type="text" id="process_name" name="process_name" required>
+
+        <label for="start_time">เวลาเริ่มต้น:</label>
+        <input type="datetime-local" id="start_time" name="start_time" required>
+
+        <label for="end_time">เวลาสิ้นสุด:</label>
+        <input type="datetime-local" id="end_time" name="end_time" required>
+
+        <label for="status">สถานะ:</label>
+        <select id="status" name="status" required>
+            <option value="processing">กำลังดำเนินการ</option>
+            <option value="suscess">เสร็จสิ้น</option>
+            <option value="cancel">รอดำเนินการ</option>
+        </select>
+
+        <button type="submit">บันทึกงาน</button>
+    </form>
+
+    <h1>ตารางการปฏิบัติงานประจำวัน</h1>
+
+    <label for="start_time">เวลาเริ่มต้น:</label>
+    <input type="date" id="find_start_time" name="start_time" required>
+    <button onclick="filterByDate()">ค้นหา</button>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Work type</th>
+            <th>Process name</th>
+            <th>Start time</th>
+            <th>End time</th>
+            <th>Status</th>
+            <th>Edit</th>
+            <th>Delete</th> 
+        </tr>
+        <tbody class="tbody">
+        </tbody>
+    </table>
+
+    <script>
+        // เพิ่มข้อมูลใหม่หรืออัปเดตข้อมูล POST 
+        document.getElementById('taskForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const task_id = document.getElementById('task_id').value;
+            const work_type = document.getElementById('work_type').value;
+            const process_name = document.getElementById('process_name').value;
+            const start_time = document.getElementById('start_time').value;
+            const end_time = document.getElementById('end_time').value;
+            const status = document.getElementById('status').value;
+
+            const data = {
+                work_type,
+                process_name,
+                start_time,
+                end_time,
+                status
+            };
+
+            try {
+                if (task_id) {
+                    const response = await fetch(`http://localhost:3000/tasks/${task_id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data),
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert('แก้ไขงานสำเร็จ!');
+                        loadData();
+                    } else {
+                        alert('เกิดข้อผิดพลาด: ' + result.error);
+                    }
+                } else {
+                    const response = await fetch('http://localhost:3000/tasks', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data),
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert('บันทึกงานสำเร็จ! Task ID: ' + result.taskId);
+                        document.getElementById('taskForm').reset();
+                        loadData();
+                    } else {
+                        alert('เกิดข้อผิดพลาด: ' + result.error);
+                    }
+                }
+            } catch (error) {
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+            }
+        });
+
+        // ดึงข้อมูล GET
+        async function loadData (startTime) {
+            let url = 'http://localhost:3000/tasks';
+            if (startTime) {
+                url = url + `?start_time=${startTime}`;
+            }
+            const response = await fetch(url);
+            const data = await response.json();
+            let rowTask = document.querySelector(".tbody");
+            rowTask.innerHTML = '';
+    
+
+            data.forEach(element => {
+                const {id, work_type, process_name, start_time, end_time, status} = element;
+                let newRow = `
+                    <tr>
+                        <td>${id}</td>
+                        <td>${work_type}</td>
+                        <td>${process_name}</td>
+                        <td>${start_time}</td>
+                        <td>${end_time}</td>
+                        <td>${status}</td>
+                        <td><button onclick="fillDataTaskToForm(${id}, '${work_type}', '${process_name}', '${start_time}', '${end_time}', '${status}')">Edit</button></td>
+                        <td><button onclick="deleteTask(${id})">Delete</button></td>
+                    </tr>
+                `;
+                rowTask.innerHTML += newRow;
+            });
+        }
+
+        function filterByDate() {
+            const startTime = document.getElementById('find_start_time').value;
+            loadData(startTime);
+        }
+
+        // ฟังก์ชันสำหรับแก้ไขข้อมูล
+        function fillDataTaskToForm(id, work_type, process_name, start_time, end_time, status) {
+            document.getElementById('task_id').value = id;
+            document.getElementById('work_type').value = work_type;
+            document.getElementById('process_name').value = process_name;
+            document.getElementById('start_time').value = start_time;
+            document.getElementById('end_time').value = end_time;
+            document.getElementById('status').value = status;
+        
+            const formattedStartTime = new Date(start_time).toISOString().slice(0, 16);
+            const formattedEndTime = new Date(end_time).toISOString().slice(0, 16);
+        
+            document.getElementById('start_time').value = formattedStartTime;
+            document.getElementById('end_time').value = formattedEndTime;
+        }
+
+        async function deleteTask(id) {
+            if (confirm('คุณแน่ใจหรือว่าต้องการลบรายการนี้?')) {
+                try {
+                    const response = await fetch(`http://localhost:3000/tasks/${id}`, {
+                        method: 'DELETE',
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert('ลบรายการสำเร็จ!');
+                        loadData();
+                    } else {
+                        alert('เกิดข้อผิดพลาด: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+                }
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

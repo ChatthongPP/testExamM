@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานสรุปสถานะการทำงานรายเดือน</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #5218d0;
+            padding: 8px;
+            text-align: left;
+        }
+        label, select, button {
+            display: block;
+            margin: 10px 0;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #5218d0;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>รายงานสรุปสถานะการทำงานรายเดือน</h1>
+
+    <label for="month">เลือกเดือน:</label>
+    <select id="month">
+        <option value="1">มกราคม</option>
+        <option value="2">กุมภาพันธ์</option>
+        <option value="3">มีนาคม</option>
+        <option value="4">เมษายน</option>
+        <option value="5">พฤษภาคม</option>
+        <option value="6">มิถุนายน</option>
+        <option value="7">กรกฎาคม</option>
+        <option value="8">สิงหาคม</option>
+        <option value="9">กันยายน</option>
+        <option value="10">ตุลาคม</option>
+        <option value="11">พฤศจิกายน</option>
+        <option value="12">ธันวาคม</option>
+    </select>
+    
+    <button onclick="fetchReport()">ดูรายงาน</button>
+
+    <table id="reportTable">
+        <thead>
+            <tr>
+                <th>สถานะ</th>
+                <th>จำนวน</th>
+            </tr>
+        </thead>
+        <tbody class="tbody-count">
+        </tbody>
+    </table>
+
+    <h1>รายงานการปฏิบัติงานประจำวัน</h1>
+
+    
+    <label for="start_time">เวลาเริ่มต้น:</label>
+    <input type="date" id="find_start_time" name="start_time" required>
+    <button onclick="findTasksByDate()">ค้นหา</button>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>work_type</th>
+            <th>process_name</th>
+            <th>start_time</th>
+            <th>end_time</th>
+            <th>status</th>
+        </tr>
+        <tbody class="tbody">
+        </tbody>
+    </table>
+
+    <script>
+        async function fetchReport() {
+            const month = document.getElementById('month').value;
+            try {
+                const response = await fetch(`http://localhost:3000/tasks/report?month=${month}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    const tbody = document.querySelector(".tbody-count");
+                    tbody.innerHTML = '';
+
+                    data.forEach(report => {
+                        const newRow = `
+                            <tr>
+                                <td>${report.status}</td>
+                                <td>${report.count}</td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += newRow;
+                    });
+                } else {
+                    alert('เกิดข้อผิดพลาดในการดึงข้อมูล');
+                }
+            } catch (error) {
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+            }
+        }
+
+        async function findTasksByDate () {
+            const startTime = document.getElementById('find_start_time').value;
+            let url = 'http://localhost:3000/tasks';
+            if (startTime) {
+                url = url + `?start_time=${startTime}`;
+            }
+            const response = await fetch(url);
+            const data = await response.json();
+            let userInfo = document.querySelector(".tbody");
+            userInfo.innerHTML = '';
+    
+
+            data.forEach(element => {
+                const {id, work_type, process_name, start_time, end_time, status} = element;
+                let newRow = `
+                    <tr>
+                        <td>${id}</td>
+                        <td>${work_type}</td>
+                        <td>${process_name}</td>
+                        <td>${start_time}</td>
+                        <td>${end_time}</td>
+                        <td>${status}</td>
+                    </tr>
+                `;
+                userInfo.innerHTML += newRow;
+            });
+            
+
+        }
+  
+    </script>
+
+</body>
+</html>

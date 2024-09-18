@@ -1,0 +1,14 @@
+CREATE DATABASE check_in_db;
+
+USE check_in_db;
+
+CREATE TABLE daily_work (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    work_type ENUM('development', 'test', 'document'),
+    process_name VARCHAR(255),
+    start_time DATETIME,
+    end_time DATETIME,
+    status ENUM('processing', 'suscess', 'cancel'),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
